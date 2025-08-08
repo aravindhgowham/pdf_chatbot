@@ -12,7 +12,7 @@ import torchaudio.transforms as T
 @dataclass
 class AudioPreprocConfig:
     target_sample_rate: int = 16000
-    duration_sec: float = 2.0
+    duration_sec: float = 4.0
     random_crop: bool = True
     normalize: bool = True
 
@@ -97,17 +97,13 @@ class RawAudioFolderDataset(Dataset):
         return waveform[:, start : start + target_len]
 
     def _maybe_augment(self, waveform: torch.Tensor) -> torch.Tensor:
-        # Simple waveform-domain augmentations (very light)
+        # Simple waveform-domain augmentations (noise removed by request)
         if not self.augment:
             return waveform
-        # Random gain
+        # Random gain only (no additive noise)
         if torch.rand(1).item() < 0.5:
-            gain = 0.8 + 0.4 * torch.rand(1).item()  # [0.8, 1.2]
+            gain = 0.9 + 0.2 * torch.rand(1).item()  # [0.9, 1.1]
             waveform = waveform * gain
-        # Add low-level noise
-        if torch.rand(1).item() < 0.3:
-            noise_level = 0.005 * torch.randn_like(waveform)
-            waveform = waveform + noise_level
         return waveform
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, int]:

@@ -7,10 +7,17 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from dotenv import load_dotenv
 
 from dataset import RawAudioFolderDataset, AudioPreprocConfig
 from model import RawAudioCNN1D
 from utils import seed_everything, compute_class_weights, save_yaml
+
+
+# Load environment variables from .env if present
+load_dotenv()
+ENV_SAMPLE_RATE = int(os.getenv("AUDIO_SAMPLE_RATE", "16000"))
+ENV_DURATION_SEC = float(os.getenv("AUDIO_DURATION_SEC", "4.0"))
 
 
 def parse_args() -> argparse.Namespace:
@@ -18,8 +25,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--train_dir", type=str, required=True)
     parser.add_argument("--val_dir", type=str, required=True)
     parser.add_argument("--output_dir", type=str, default="checkpoints")
-    parser.add_argument("--sample_rate", type=int, default=16000)
-    parser.add_argument("--duration_sec", type=float, default=2.0)
+    parser.add_argument("--sample_rate", type=int, default=ENV_SAMPLE_RATE)
+    parser.add_argument("--duration_sec", type=float, default=ENV_DURATION_SEC)
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--epochs", type=int, default=30)
     parser.add_argument("--lr", type=float, default=1e-3)

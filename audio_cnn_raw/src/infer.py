@@ -1,11 +1,19 @@
 import argparse
+import os
 import torch
 import torch.nn.functional as F
 import torchaudio
+from dotenv import load_dotenv
 
 from dataset import AudioPreprocConfig
 from model import RawAudioCNN1D
 from utils import load_yaml
+
+
+# Load environment variables from .env if present
+load_dotenv()
+ENV_SAMPLE_RATE = int(os.getenv("AUDIO_SAMPLE_RATE", "16000"))
+ENV_DURATION_SEC = float(os.getenv("AUDIO_DURATION_SEC", "4.0"))
 
 
 def load_and_prepare(audio_path: str, preproc: AudioPreprocConfig) -> torch.Tensor:
@@ -43,8 +51,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--label_map", type=str, required=True)
     parser.add_argument("--audio_path", type=str, required=True)
-    parser.add_argument("--sample_rate", type=int, default=16000)
-    parser.add_argument("--duration_sec", type=float, default=2.0)
+    parser.add_argument("--sample_rate", type=int, default=ENV_SAMPLE_RATE)
+    parser.add_argument("--duration_sec", type=float, default=ENV_DURATION_SEC)
     return parser.parse_args()
 
 
