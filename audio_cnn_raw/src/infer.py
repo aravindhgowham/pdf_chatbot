@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 from dataset import AudioPreprocConfig
 from model import RawAudioCNN1D
+from model_adv import RawAudioResNet1D
 from utils import load_yaml
 
 
@@ -53,7 +54,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--audio_path", type=str, required=True)
     parser.add_argument("--sample_rate", type=int, default=ENV_SAMPLE_RATE)
     parser.add_argument("--duration_sec", type=float, default=ENV_DURATION_SEC)
+    parser.add_argument("--use_ema", action="store_true", help="No-op; kept for compatibility if you saved EMA checkpoint")
     return parser.parse_args()
+
+
+def build_model_from_name(name: str, num_classes: int, base_channels: int, dropout: float):
+    if name == "basic":
+        return RawAudioCNN1D(in_channels=1, num_classes=num_classes, base_channels=base_channels, dropout=dropout)
+    if name in ("resnet", "resattn"):
+        return RawAudioResNet1D(num_classes=num_classes, base_channels=base_channels, dropout=dropout, use_attention=(name == "resattn"))
+    # Fallback
+    return RawAudioCNN1D(in_channels=1, num_classes=num_classes, base_channels=base_channels, dropout=dropout)
 
 
 def main() -> None:
@@ -64,7 +75,12 @@ def main() -> None:
 
     checkpoint = torch.load(args.checkpoint, map_location="cpu")
 
-    model = RawAudioCNN1D(in_channels=1, num_classes=len(index_to_label))
+    model_name = checkpoint.get("model_name", "basic")
+    ckpt_args = checkpoint.get("args", {})
+    base_channels = ckpt_args.get("base_channels", 32)
+    dropout = ckpt_args.get("dropout", 0.1)
+
+    model = build_model_from_name(model_name, num_classes=len(index_to_label), base_channels=base_channels, dropout=dropout)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 

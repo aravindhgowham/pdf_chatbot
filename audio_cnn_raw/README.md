@@ -35,7 +35,7 @@ You can optionally add a `test/` directory with the same subfolders.
 
 WAV requirements: mono or stereo, any sample rate (will be resampled); 16-bit PCM preferred.
 
-## Training
+## Training (basic)
 
 ```
 python src/train.py \
@@ -47,18 +47,47 @@ python src/train.py \
   --batch_size 32 \
   --epochs 30 \
   --lr 1e-3 \
-  --num_workers 4
+  --num_workers 4 \
+  --model_name basic
 ```
 
-If you omit `--sample_rate` and `--duration_sec`, the scripts read `AUDIO_SAMPLE_RATE` and `AUDIO_DURATION_SEC` from `.env` (or the process environment). Default duration is 4.0 seconds.
+## Training (advanced, better accuracy)
 
-This will save best model checkpoint and label mapping into `checkpoints/`.
+Key options: residual model with attention, mixup, time-shift, label-smoothing, EMA, early stopping, gradient clipping.
+
+```
+python src/train.py \
+  --train_dir /data/train \
+  --val_dir /data/val \
+  --output_dir checkpoints \
+  --sample_rate 16000 \
+  --duration_sec 4.0 \
+  --batch_size 32 \
+  --epochs 60 \
+  --lr 3e-4 \
+  --weight_decay 1e-4 \
+  --num_workers 4 \
+  --model_name resattn \
+  --base_channels 64 \
+  --dropout 0.2 \
+  --time_shift_ms 50 \
+  --mixup_alpha 0.2 \
+  --label_smoothing 0.05 \
+  --ema_decay 0.995 \
+  --early_stop_patience 12 \
+  --clip_grad_norm 2.0 \
+  --use_weighted_sampler
+```
+
+This will save best model checkpoint(s) and label mapping into `checkpoints/`:
+- `best_model.pt` (standard)
+- `best_model_ema.pt` (EMA, often better)
 
 ## Inference on a single file
 
 ```
 python src/infer.py \
-  --checkpoint checkpoints/best_model.pt \
+  --checkpoint checkpoints/best_model_ema.pt \
   --label_map checkpoints/label_map.yaml \
   --audio_path /path/to/horn.wav \
   --sample_rate 16000 \
@@ -73,7 +102,8 @@ Prediction: PASS (p=0.93)
 
 ## Notes
 
-- Model trains on raw waveform; no spectrograms or handcrafted features are used.
+- Model options: `basic` (compact CNN) or `resnet`/`resattn` (deeper residual with optional attention pooling).
+- Advanced training includes: mixup, time-shift, label smoothing, EMA, early stopping, gradient clipping, weighted sampling.
 - Input is resampled and padded/truncated to the target duration for batch training consistency.
-- Augmentation avoids additive noise by default; only light gain jitter may be applied during training.
-- You can adjust model depth/width in `src/model.py` and augmentation settings in `src/dataset.py`.
+- Augmentation avoids additive noise by default; only light gain jitter plus optional time shift/mixup are applied during training.
+- You can adjust model depth/width in `src/model_adv.py` and augmentation settings in `src/augment.py`.
