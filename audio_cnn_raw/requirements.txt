@@ -1,0 +1,7 @@
+torch>=2.2.0
+torchaudio>=2.2.0
+numpy>=1.24
+tqdm>=4.66
+pyyaml>=6.0
+soundfile>=0.12
+python-dotenv>=1.0.0
